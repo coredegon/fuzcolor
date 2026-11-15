@@ -182,7 +182,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fuzlog", specifier = "==0.3.1" },
+    { name = "fuzlog", specifier = "==0.3.2" },
     { name = "matplotlib", specifier = ">=3.9" },
     { name = "numpy", specifier = ">=2.0" },
 ]
@@ -196,15 +196,15 @@ dev = [
 
 [[package]]
 name = "fuzlog"
-version = "0.3.1"
+version = "0.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bc/1e/4ed1ffae0de01f2cb91543547836809ae4f923080209b3b08fd2a0d1397d/fuzlog-0.3.1.tar.gz", hash = "sha256:1459abc5231afa9372706b2e58a03cf8c2487e133974bacc1401bb8883f691cb", size = 25746, upload-time = "2026-11-15T12:51:30.144Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/68/f1/b1347150113c278b90820530805f4e0482e2575cb7d612e47c52a08ffecb/fuzlog-0.3.2.tar.gz", hash = "sha256:97467353d9da29702859cdcfbe8a1188c17f1ed805ff6aeaab7ac6385a836b52", size = 25699, upload-time = "2026-11-15T21:11:24.122Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/c5/81dd35e3f83dce84f8411012925f29591c3f6ef62d031a89baf8352c2ca7/fuzlog-0.3.1-py3-none-any.whl", hash = "sha256:5e13cd27ef3467400e4610d755255e9be03b954cefe9191ef783f22564852df1", size = 31190, upload-time = "2026-11-15T12:51:28.932Z" },
+    { url = "https://files.pythonhosted.org/packages/a6/b5/3cc68e3127019bb2417558227e0a14bb0ffdb03a078dd9e641d3e29807c6/fuzlog-0.3.2-py3-none-any.whl", hash = "sha256:1cea93a1d6d447e28146711856f97d4bd032ee9bd3741419da76efbc261fd970", size = 31095, upload-time = "2026-11-15T21:11:23.047Z" },
 ]
 
 [[package]]

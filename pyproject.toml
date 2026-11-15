@@ -10,7 +10,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "fuzlog==0.3.1",  # its interface is not stable yet
+    "fuzlog==0.3.2",  # its interface is not stable yet
     "matplotlib>=3.9",
     "numpy>=2.0",
 ]
