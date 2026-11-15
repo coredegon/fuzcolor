@@ -27,7 +27,7 @@ def test_the_model_has_86_colors():
 
 @pytest.mark.parametrize(("rgb", "name"), NAMED.items(), ids=NAMED.values())
 def test_colors_get_their_names(rgb, name):
-    assert COLIBRI.colors[COLIBRI.classify(rgb)] == name
+    assert COLIBRI.label(rgb) == name
 
 
 def test_every_color_belongs_to_the_model_completely():

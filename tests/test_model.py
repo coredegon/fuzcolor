@@ -7,13 +7,14 @@ import fuzcolor as fc
 HUE = fz.partition("hue", (0, 360), ["red", "green", "blue"], periodic=True)
 SATURATION = fz.partition("saturation", (0, 1), ["gray", "pale", "vivid"])
 INTENSITY = fz.partition("intensity", (0, 1), ["dark", "light"])
-TINTS = fc.Family("tint", HUE, fc.only(SATURATION, "pale", "vivid"))
-GRAYS = fc.Family("gray", INTENSITY, fc.only(SATURATION, "gray"))
-MODEL = fc.Model("toy", fc.HSI, TINTS, GRAYS)
+TINT = [HUE, fc.only(SATURATION, "pale", "vivid")]
+GRAY = [INTENSITY, fc.only(SATURATION, "gray")]
+MODEL = fc.Model("toy", fc.HSI, tint=TINT, gray=GRAY)
 
 
 def test_a_family_names_every_combination_of_terms():
-    assert TINTS.colors == (
+    tints, grays = MODEL.families
+    assert tints.colors == (
         "red/pale",
         "red/vivid",
         "green/pale",
@@ -21,13 +22,14 @@ def test_a_family_names_every_combination_of_terms():
         "blue/pale",
         "blue/vivid",
     )
-    assert GRAYS.colors == ("dark", "light")  # one saturation: not in the name
-    assert fc.Family("gray", fc.only(SATURATION, "gray")).colors == ("gray",)
-    assert repr(TINTS) == "Family('tint': hue x saturation)"
+    assert grays.colors == ("dark", "light")  # one saturation: not in the name
+    alone = fc.Model("m", fc.HSI, gray=[fc.only(SATURATION, "gray")])
+    assert alone.colors == ("gray",)
+    assert repr(tints) == "Family('tint': hue x saturation)"
     with pytest.raises(ValueError, match="different channels"):
-        fc.Family("twice", HUE, HUE)
+        fc.Model("m", fc.HSI, twice=[HUE, HUE])
     with pytest.raises(ValueError, match="different channels"):
-        fc.Family("empty")
+        fc.Model("m", fc.HSI, empty=[])
 
 
 def test_only_keeps_the_named_terms():
@@ -42,7 +44,7 @@ def test_only_keeps_the_named_terms():
 
 
 def test_a_model_gives_every_pixel_a_degree_in_every_color():
-    assert MODEL.colors == (*TINTS.colors, *GRAYS.colors)
+    assert MODEL.colors[-3:] == ("blue/vivid", "dark", "light")
     assert repr(MODEL) == "Model('toy', HSI: 6 tint, 2 gray)"
     red = dict(zip(MODEL.colors, MODEL([255, 0, 0]).tolist(), strict=True))
     assert red["red/vivid"] == 1.0
@@ -58,11 +60,13 @@ def test_a_model_gives_every_pixel_a_degree_in_every_color():
 
 
 def test_classify_names_the_strongest_color():
+    assert MODEL.label([255, 0, 0]) == "red/vivid"
+    assert MODEL.label([20, 20, 20]) == "dark"
+    assert MODEL.label([[255, 0, 0], [20, 20, 20]]).tolist() == ["red/vivid", "dark"]
     assert MODEL.colors[MODEL.classify([255, 0, 0])] == "red/vivid"
-    assert MODEL.colors[MODEL.classify([20, 20, 20])] == "dark"
     image = np.random.default_rng(1).integers(0, 256, (40, 30, 3), dtype=np.uint8)
     assert MODEL.classify(image).tolist() == MODEL(image).argmax(axis=0).tolist()
-    by_minimum = fc.Model("toy", fc.HSI, TINTS, GRAYS, tnorm=np.minimum)
+    by_minimum = fc.Model("toy", fc.HSI, tint=TINT, gray=GRAY, tnorm=np.minimum)
     best = by_minimum.classify(image)
     degrees = by_minimum(image)
     strongest = np.take_along_axis(degrees, best[None], axis=0)[0]
@@ -70,9 +74,11 @@ def test_classify_names_the_strongest_color():
 
 
 def test_a_pixel_of_no_color_gets_minus_one():
-    vivid = fc.Model("vivid", fc.HSI, fc.Family("v", fc.only(SATURATION, "vivid")))
+    vivid = fc.Model("vivid", fc.HSI, v=[fc.only(SATURATION, "vivid")])
     assert vivid.classify([[255, 0, 0], [90, 90, 90]]).tolist() == [0, -1]
     assert vivid.classify([90, 90, 90]) == -1
+    assert vivid.label([[255, 0, 0], [90, 90, 90]]).tolist() == ["v", ""]
+    assert vivid.label([90, 90, 90]) == ""
 
 
 def test_prototypes_are_typical_colors():
@@ -90,10 +96,10 @@ def test_prototypes_are_typical_colors():
 
 def test_a_model_checks_its_families():
     with pytest.raises(ValueError, match="not a channel of HSI"):
-        fc.Model("m", fc.HSI, fc.Family("f", fz.partition("value", (0, 1), ["a", "b"])))
+        fc.Model("m", fc.HSI, f=[fz.partition("value", (0, 1), ["a", "b"])])
     with pytest.raises(ValueError, match="not a channel of HSI"):
-        fc.Model("m", fc.HSI, fc.Family("f", fz.partition("hue", (0, 1), ["a", "b"])))
+        fc.Model("m", fc.HSI, f=[fz.partition("hue", (0, 1), ["a", "b"])])
     with pytest.raises(ValueError, match="colors that differ"):
-        fc.Model("m", fc.HSI, GRAYS, fc.Family("again", INTENSITY))
+        fc.Model("m", fc.HSI, gray=GRAY, again=[INTENSITY])
     with pytest.raises(ValueError, match="colors that differ"):
         fc.Model("m", fc.HSI)

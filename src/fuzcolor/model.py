@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import itertools
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import fuzlog as fz
 import numpy as np
@@ -34,16 +35,10 @@ def only(variable: fz.Variable, *terms: str) -> fz.Variable:
 
 
 class Family:
-    """The colors made of one term from each variable.
+    """The colors made of one term from each variable; a `Model` makes its own.
 
-    ```python
-    chromatic = Family("chromatic", hue, only(saturation, "low", "high"), shade)
-    chromatic.colors    # ("red/low/dark", "red/low/medium", ...)
-    ```
-
-    Every variable describes the channel of a color space that it is named
-    after. A color is named after the terms that tell it apart from the others:
-    a variable with one term stays out of the name, and a family of one color
+    A color is named after the terms that tell it apart from the others: a
+    variable with one term stays out of the name, and a family of one color
     takes the name of the family.
     """
 
@@ -98,45 +93,60 @@ class Family:
 
 
 class Model:
-    """A fuzzy color model: the families of colors named in a color space.
+    """A fuzzy color model: families of colors named in a color space.
 
     ```python
-    model = fc.Model("COLIBRI", fc.HSI, chromatic, achromatic)
-    model.colors                 # the names of all colors, family by family
+    model = fc.Model(
+        "toy",
+        fc.HSI,
+        tint=[hue, fc.only(saturation, "pale", "vivid")],
+        gray=[intensity, fc.only(saturation, "gray")],
+    )
+    model.colors                 # ("red/pale", "red/vivid", ..., "dark", "light")
     model([200, 30, 30])         # the degree of the pixel in every color
-    model.classify(image)        # the number of the strongest color per pixel
+    model.label([200, 30, 30])   # "red/vivid": its strongest color
     ```
 
+    A family is a list of fuzlog variables, each named after the channel of the
+    space that it describes; its colors take one term from each variable.
     Pixels have shape `(..., 3)`: 8-bit integers or floats in [0, 1].
 
     Args:
         name: What the model is called.
         space: The color space whose channels the variables describe.
-        *families: The families of colors.
         tnorm: How the degrees of the terms of a color are joined. With the
             product, families of partitions give degrees that sum to 1.
+        **families: The variables of every family, by the name of the family.
     """
 
-    __slots__ = ("colors", "families", "name", "space", "tnorm")
+    __slots__ = ("_names", "colors", "families", "name", "space", "tnorm")
 
     def __init__(
-        self, name: str, space: Space, *families: Family, tnorm: Norm = np.multiply
+        self,
+        name: str,
+        space: Space,
+        /,
+        *,
+        tnorm: Norm = np.multiply,
+        **families: Sequence[fz.Variable],
     ) -> None:
-        for family in families:
+        made = tuple(Family(key, *variables) for key, variables in families.items())
+        for family in made:
             for variable in family.variables:
                 if space.channels.get(variable.name) != variable.universe:
                     raise ValueError(
                         f"{family.name!r}: {variable.name!r} on {variable.universe} "
                         f"is not a channel of {space.name}: {space.channels}"
                     )
-        colors = tuple(color for family in families for color in family.colors)
+        colors = tuple(color for family in made for color in family.colors)
         if not colors or len(set(colors)) < len(colors):
             raise ValueError(f"{name!r} needs colors that differ, got {colors}")
         self.name = name
         self.space = space
-        self.families = families
+        self.families = made
         self.tnorm = tnorm
         self.colors = colors
+        self._names = np.array([*colors, ""])  # the last is what -1 counts to
 
     def __call__(self, rgb: ArrayLike) -> Array:
         """Return the degree of the pixels in every color.
@@ -163,6 +173,15 @@ class Model:
             degree = np.maximum(degree, strength)
             first += len(family.colors)
         return best
+
+    def label(self, rgb: ArrayLike) -> Any:
+        """Return the name of the strongest color of every pixel.
+
+        One pixel gives a string, more give an array of strings; a pixel that
+        belongs to no color gets an empty name.
+        """
+        names = self._names[self.classify(rgb)]
+        return names if names.ndim else str(names)
 
     def _channels(self, rgb: ArrayLike) -> dict[str, Array]:
         """The values of every channel of the space, by name."""

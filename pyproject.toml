@@ -1,7 +1,7 @@
 [project]
 name = "fuzcolor"
 version = "0.1.0"
-description = "Fuzzy color models: the colors people name, as fuzzy sets."
+description = "Simple and easy to use Python library for fuzzy color models."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]

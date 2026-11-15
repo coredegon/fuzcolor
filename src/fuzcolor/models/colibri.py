@@ -13,7 +13,7 @@ which gives 9 x 3 x 3 + 5 = 86 colors.
 
 import fuzlog as fz
 
-from fuzcolor.model import Family, Model, only
+from fuzcolor.model import Model, only
 from fuzcolor.spaces import HSI
 
 HUE = fz.partition(
@@ -64,6 +64,6 @@ SHADE = fz.partition(
 COLIBRI = Model(
     "COLIBRI",
     HSI,
-    Family("chromatic", HUE, only(SATURATION, "low", "medium", "high"), SHADE),
-    Family("achromatic", INTENSITY, only(SATURATION, "very low")),
+    chromatic=[HUE, only(SATURATION, "low", "medium", "high"), SHADE],
+    achromatic=[INTENSITY, only(SATURATION, "very low")],
 )

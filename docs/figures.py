@@ -5,6 +5,7 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
+import fuzlog as fz
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -48,8 +49,22 @@ def palette():
     save(figure, "palette.png")
 
 
+def toy():
+    """The model that the guide builds."""
+    hue = fz.partition("hue", (0, 360), ["red", "green", "blue"], periodic=True)
+    saturation = fz.partition("saturation", (0, 1), ["gray", "pale", "vivid"])
+    intensity = fz.partition("intensity", (0, 1), ["dark", "light"])
+    return fc.Model(
+        "toy",
+        fc.HSI,
+        tint=[hue, fc.only(saturation, "pale", "vivid")],
+        gray=[intensity, fc.only(saturation, "gray")],
+    )
+
+
 if __name__ == "__main__":
     IMAGES.mkdir(exist_ok=True)
-    palette()
-    save(fc.plot(COLIBRI), "terms.png")
-    save(fc.swatches(COLIBRI), "swatches.png")
+    palette()  # README.md
+    save(fc.swatches(toy()), "toy.png")  # guide.md
+    save(fc.plot(COLIBRI), "terms.png")  # colibri.md
+    save(fc.swatches(COLIBRI), "swatches.png")  # colibri.md

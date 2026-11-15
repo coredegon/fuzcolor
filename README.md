@@ -1,7 +1,7 @@
 # fuzcolor
 
-Fuzzy color models: the colors people name, as fuzzy sets. A pixel belongs to
-every color to a degree instead of falling into one bin. Built on
+Simple and easy to use Python library for fuzzy color models: a pixel belongs
+to every named color to a degree. Built on
 [fuzlog](https://github.com/coredegon/fuzlog) and NumPy, typed, Python 3.12+.
 
 ```sh
@@ -18,8 +18,9 @@ image = np.array(
 )
 
 print(COLIBRI)  # Model('COLIBRI', HSI: 81 chromatic, 5 achromatic)
-print([COLIBRI.colors[i] for i in COLIBRI.classify(image).flat])
-# ['red/high/dark', 'yellow/high/light', 'blue/high/medium', 'dark gray']
+print(COLIBRI.label([200, 30, 30]))  # red/high/dark
+print(COLIBRI.label(image).tolist())
+# [['red/high/dark', 'yellow/high/light'], ['blue/high/medium', 'dark gray']]
 
 weights = fc.palette(COLIBRI, image)  # the share of the image in each of 86 colors
 fc.pie(COLIBRI, weights)
@@ -31,7 +32,7 @@ fc.pie(COLIBRI, weights)
 
 | | |
 |---|---|
-| **Models** | `Model` and `Family` name colors as combinations of the terms of fuzlog variables |
+| **Models** | `Model` names colors as combinations of the terms of fuzlog variables |
 | **Spaces** | `Space` describes the channels of a color space; `HSI` comes with the library |
 | **Features** | `palette` describes an image, `tabulate` works a model out for every 8-bit color, `plot`, `swatches` and `pie` draw |
 | **`fuzcolor.models`** | the models that come with the library: `COLIBRI` |
@@ -39,8 +40,9 @@ fc.pie(COLIBRI, weights)
 
 ## Documentation
 
-- [Guide](https://github.com/coredegon/fuzcolor/blob/main/docs/guide.md): every part, with pictures
-- [COLIBRI](https://github.com/coredegon/fuzcolor/blob/main/docs/colibri.md): the model and its parameters
+- [Guide](https://github.com/coredegon/fuzcolor/blob/main/docs/guide.md): how to use a model and how to build one
+- [COLIBRI](https://github.com/coredegon/fuzcolor/blob/main/docs/colibri.md): the model, its colors and its parameters
+- [Reference](https://github.com/coredegon/fuzcolor/blob/main/docs/reference.md): every public name on one page
 
 ## Development
 

@@ -62,19 +62,25 @@ def test_a_table_answers_as_the_model(table, tmp_path):
     assert table.values.dtype == np.uint8
     red, green, blue = np.moveaxis(IMAGE, -1, 0)
     expected = COLIBRI.classify(IMAGE).tolist()
-    assert table.values[red, green, blue].tolist() == expected
+    assert table(IMAGE).tolist() == expected
+    assert table(IMAGE).dtype == np.uint8
+    assert table(IMAGE[0, 0]) == expected[0][0]
     assert table(red=red, green=green, blue=blue).tolist() == expected
+    with pytest.raises(TypeError, match="8-bit pixels"):
+        table(IMAGE / 255.0)
     table.save(tmp_path / "colibri.npz")
-    loaded = fz.Table.load(tmp_path / "colibri.npz")
-    assert np.array_equal(loaded.values, table.values)
+    loaded = fc.Table.load(tmp_path / "colibri.npz")
+    assert isinstance(loaded, fc.Table)
+    assert loaded(IMAGE).tolist() == expected
+    assert fz.Table.load(tmp_path / "colibri.npz").source == "COLIBRI"
 
 
 def test_a_table_marks_the_pixels_of_no_color():
     saturation = fz.partition("saturation", (0, 1), ["gray", "pale", "vivid"])
-    vivid = fc.Model("vivid", fc.HSI, fc.Family("v", fc.only(saturation, "vivid")))
+    vivid = fc.Model("vivid", fc.HSI, v=[fc.only(saturation, "vivid")])
     table = fc.tabulate(vivid)
-    assert table.values[255, 0, 0] == 0
-    assert table.values[90, 90, 90] == NONE
+    pixels = np.array([[255, 0, 0], [90, 90, 90]], dtype=np.uint8)
+    assert table(pixels).tolist() == [0, NONE]
 
 
 def test_plot_draws_the_terms_of_every_family():
