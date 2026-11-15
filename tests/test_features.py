@@ -83,25 +83,61 @@ def test_a_table_marks_the_pixels_of_no_color():
     assert table(pixels).tolist() == [0, NONE]
 
 
+def legend(ax):
+    """The names in the legend of a plot as they read: along the rows, top down."""
+    ax.figure.canvas.draw()
+    found = ax.get_legend()
+    assert found is not None
+    marks = [mark.get_window_extent() for mark in found.legend_handles]
+    places = [(-round(box.y0), round(box.x0)) for box in marks]  # a row stands level
+    names = [text.get_text() for text in found.get_texts()]
+    return [name for _, name in sorted(zip(places, names, strict=True))]
+
+
 def test_plot_draws_the_terms_of_every_family():
-    figure = fc.plot(COLIBRI)
-    shown = [ax for ax in figure.axes if ax.axison and ax.get_xlabel()]
+    axes = fc.plot(COLIBRI)
+    assert axes.shape == (2, 3)  # a row per family, a column per channel
+    assert not axes[1, 0].axison  # the achromatic colors have no hue
+    shown = [ax for ax in axes.flat if ax.axison]
     channels = ["hue", "saturation", "intensity", "saturation", "intensity"]
     assert [ax.get_xlabel() for ax in shown] == channels
     assert [len(ax.lines) for ax in shown] == [9, 3, 3, 1, 5]
+    assert legend(shown[0]) == list(COLIBRI.families[0].variables[0].terms)
+    assert legend(shown[4]) == ["black", "dark gray", "gray", "light gray", "white"]
     assert shown[0].get_ylabel() == "chromatic\nmembership"
     assert shown[3].get_ylabel() == "achromatic\nmembership"
 
 
+def test_plot_names_the_terms_under_the_axis_label():
+    ax = fc.plot(COLIBRI)[0, 0]
+    ax.figure.canvas.draw()
+    found = ax.get_legend()
+    assert found is not None
+    texts = found.get_texts()
+    assert max(t.get_window_extent().y1 for t in texts) < (
+        ax.xaxis.label.get_window_extent().y0
+    )
+    marks = found.legend_handles
+    assert len({round(m.get_window_extent().y0) for m in marks}) == 2  # 9 hues: 5 + 4
+
+
+def test_plots_return_axes_so_a_notebook_shows_them_once():
+    from matplotlib.axes import Axes
+
+    assert all(isinstance(ax, Axes) for ax in fc.plot(COLIBRI).flat)
+    assert all(isinstance(ax, Axes) for ax in fc.swatches(COLIBRI))
+    assert isinstance(fc.pie(COLIBRI, np.full(86, 1 / 86)), Axes)
+
+
 def test_swatches_show_every_color_once():
-    figure = fc.swatches(COLIBRI)
-    chromatic, achromatic = (np.asarray(ax.images[0].get_array()) for ax in figure.axes)
+    axes = fc.swatches(COLIBRI)
+    chromatic, achromatic = (np.asarray(ax.images[0].get_array()) for ax in axes)
     assert chromatic.shape == (9, 9, 3)
     assert achromatic.shape == (1, 5, 3)
     typical = COLIBRI.prototypes()
     assert chromatic[1, 0].tolist() == typical[1].tolist()  # red, low, medium
     assert chromatic[0, 1].tolist() == typical[9].tolist()  # orange, low, dark
-    labels = [label.get_text() for label in figure.axes[0].get_yticklabels()]
+    labels = [label.get_text() for label in axes[0].get_yticklabels()]
     assert labels[:2] == ["low, dark", "low, medium"]
 
 

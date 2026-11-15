@@ -52,6 +52,6 @@ def toy():
 if __name__ == "__main__":
     IMAGES.mkdir(exist_ok=True)
     palette()  # README.md
-    save(fc.swatches(toy()), "toy.png")  # guide.md
-    save(fc.plot(COLIBRI), "terms.png")  # colibri.md
-    save(fc.swatches(COLIBRI), "swatches.png")  # colibri.md
+    save(fc.swatches(toy())[0].figure, "toy.png")  # guide.md
+    save(fc.plot(COLIBRI)[0, 0].figure, "terms.png")  # colibri.md
+    save(fc.swatches(COLIBRI)[0].figure, "swatches.png")  # colibri.md

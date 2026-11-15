@@ -1,5 +1,7 @@
 """Plots: matplotlib views of models and palettes.
 
+Every function returns the Axes it drew on, never the Figure: a notebook shows
+a new figure once by itself, and would show a returned Figure a second time.
 Fonts, sizes and the colour of text follow matplotlib's configuration; what is
 painted are the colors of the model themselves. Matplotlib is imported by the
 first plot.
@@ -9,18 +11,17 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import fuzlog as fz
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 
 from fuzcolor.math import Array
 from fuzcolor.model import Family, Model, _centers
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
 
 _OTHER = (0.86, 0.86, 0.84)  # the slice of the colors too small to show
 _EDGE = "#898781"
@@ -29,16 +30,19 @@ _RING = 0.42  # the width of the ring of a pie
 _BAND = (-0.13, -0.03)  # where the band of a channel runs, under its curves
 
 
-def plot(model: Model) -> Figure:
+def plot(model: Model) -> NDArray[np.object_]:
     """Draw the terms of a model: a row per family, a column per channel.
 
     ```python
-    fc.plot(COLIBRI)
+    axes = fc.plot(COLIBRI)
+    axes[0, 0].figure.savefig("colibri.png")
     ```
 
-    Every term wears the color it stands for, and a band under the axis shows
-    how the channel runs through the colors of the family. A channel with more
-    terms gets a wider column.
+    Every term wears the color it stands for and is named in a legend below,
+    and a band under the axis shows how the channel runs through the colors of
+    the family. A channel with more terms gets a wider column. Returns the
+    grid of Axes, as `plt.subplots` does; a channel a family does not describe
+    has its Axes turned off.
     """
     import matplotlib.pyplot as plt
 
@@ -52,7 +56,7 @@ def plot(model: Model) -> Figure:
         len(model.families),
         len(channels),
         squeeze=False,
-        figsize=(sum(widths), 2.9 * len(model.families)),
+        figsize=(sum(widths), 3.3 * len(model.families)),
         width_ratios=widths,
         layout="constrained",
     )
@@ -66,7 +70,7 @@ def plot(model: Model) -> Figure:
         shown = next(ax for ax in row if ax.axison)
         shown.set_ylabel(f"{family.name}\nmembership")
     figure.suptitle(f"{model.name}: {len(model.colors)} colors")
-    return figure
+    return axes
 
 
 def _described(family: Family) -> dict[str, fz.Variable]:
@@ -79,9 +83,9 @@ def _curves(model: Model, family: Family, variable: fz.Variable, ax: Axes) -> No
 
     low, high = variable.universe
     x = np.linspace(low, high, 1001)
-    degrees = variable(x)
-    tints = _tints(model, family, variable, _centers(variable))
-    for curve, tint in zip(degrees, tints.tolist(), strict=True):
+    tints = _tints(model, family, variable, _centers(variable)).tolist()
+    curves = []
+    for term, curve, tint in zip(variable.terms, variable(x), tints, strict=True):
         outline = []
         if _luminance(tint) > _PALE:
             outline = [
@@ -91,12 +95,13 @@ def _curves(model: Model, family: Family, variable: fz.Variable, ax: Axes) -> No
         ax.fill_between(x, curve, color=tint, alpha=0.22, linewidth=0)
         # Only where the term is, so the zeros don't pile up along the bottom.
         inside = np.convolve(curve > 0, np.ones(3), mode="same") > 0
-        ax.plot(
+        curves += ax.plot(
             x,
             np.where(inside, curve, np.nan),
             color=tint,
             linewidth=2.2,
             path_effects=outline,
+            label=term,
         )
     band = _tints(model, family, variable, np.linspace(low, high, 256))
     ax.imshow(
@@ -105,40 +110,35 @@ def _curves(model: Model, family: Family, variable: fz.Variable, ax: Axes) -> No
         aspect="auto",
         interpolation="bilinear",
     )
-    _names(variable, degrees, ax)
     ax.set(xlim=(low, high), ylim=(_BAND[0], 1.04), yticks=(0.0, 0.5, 1.0))
     ax.set(xlabel=variable.name, ylabel="membership")
     ax.spines[["top", "right", "bottom"]].set_visible(False)
     ax.spines["left"].set_bounds(0.0, 1.0)
     ax.tick_params(axis="x", length=0)
+    _legend_below(ax, curves)
 
 
-def _names(variable: fz.Variable, degrees: Array, ax: Axes) -> None:
-    """Write the name of every term over its core, on two rows if they crowd."""
-    low, high = variable.universe
-    places = ((_centers(variable) - low) / (high - low)).tolist()
-    names = list(variable.terms)
-    owner = int(degrees[:, 0].argmax())
-    if variable.periodic and degrees[owner, 0] > 0.5:
-        # The term that owns the seam is named at the far end too.
-        places.append(0.0 if places[owner] > 0.5 else 1.0)
-        names.append(names[owner])
-    order = sorted(range(len(places)), key=places.__getitem__)
-    ranked = [places[i] for i in order]
-    crowded = any(b - a < 0.15 for a, b in itertools.pairwise(ranked))
-    for rank, i in enumerate(order):
-        place = places[i]
-        ax.annotate(
-            names[i],
-            (place, 1.0),
-            xycoords="axes fraction",
-            xytext=(0, 5 + (12 if crowded and rank % 2 else 0)),
-            textcoords="offset points",
-            ha="left" if place < 0.03 else "right" if place > 0.97 else "center",
-            va="bottom",
-            fontsize="small",
-            annotation_clip=False,
-        )
+def _legend_below(ax: Axes, handles: list[Any]) -> None:
+    """Name the handles in a legend under the axis label, five to a row at most.
+
+    A legend fills column after column; the handles are dealt so that they
+    read in order along the rows.
+    """
+    columns = math.ceil(len(handles) / math.ceil(len(handles) / 5))
+    dealt = [
+        handles[i] for j in range(columns) for i in range(j, len(handles), columns)
+    ]
+    ax.legend(
+        handles=dealt,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.0),
+        borderaxespad=4.0,  # in font sizes: clear of the ticks and the axis label
+        ncol=columns,
+        frameon=False,
+        fontsize="small",
+        handlelength=1.6,
+        columnspacing=1.2,
+    )
 
 
 def _tints(model: Model, family: Family, variable: fz.Variable, values: Array) -> Array:
@@ -162,7 +162,7 @@ def _luminance(rgb: tuple[float, ...] | list[float]) -> float:
     return math.fsum(w * c for w, c in zip((0.2126, 0.7152, 0.0722), rgb, strict=True))
 
 
-def swatches(model: Model) -> Figure:
+def swatches(model: Model) -> NDArray[np.object_]:
     """Draw the typical color of every color of a model, a panel per family.
 
     ```python
@@ -170,7 +170,7 @@ def swatches(model: Model) -> Figure:
     ```
 
     The terms of a family's first variable run across, the combinations of the
-    terms of its other variables run down.
+    terms of its other variables run down. Returns the Axes of the families.
     """
     import matplotlib.pyplot as plt
 
@@ -205,7 +205,7 @@ def swatches(model: Model) -> Figure:
         ax.set_title(family.name, loc="left")
         ax.spines[:].set(color=_EDGE, linewidth=0.5)
     figure.suptitle(f"{model.name}: {len(model.colors)} colors")
-    return figure
+    return axes[:, 0]
 
 
 def pie(

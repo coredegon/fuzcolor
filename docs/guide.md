@@ -74,9 +74,12 @@ A pixel that belongs to no color of the model is stored as 255.
 | `fc.swatches(model)` | the typical color of every color |
 | `fc.pie(model, weights)` | a palette |
 
-`plot` and `swatches` return the Figure; `pie` draws on an Axes of your own, or
-a new one, and returns it. All three are shown for [COLIBRI](colibri.md) and in
-the [README](../README.md).
+`plot` returns its grid of Axes and `swatches` an Axes per family, as
+`plt.subplots` does; `pie` draws on an Axes of your own, or a new one, and
+returns it. None returns the Figure, so a notebook shows each plot once; reach
+the Figure through any Axes, as in `fc.plot(model)[0, 0].figure.savefig(path)`.
+All three are shown for [COLIBRI](colibri.md) and in the
+[README](../README.md).
 
 ## Build a model
 
