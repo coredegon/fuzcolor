@@ -9,6 +9,7 @@ import ast
 import contextlib
 import io
 import re
+import shutil
 import tokenize
 from pathlib import Path
 
@@ -63,6 +64,7 @@ def _sandbox(monkeypatch, tmp_path):
 
     monkeypatch.setattr(plt, "show", lambda *args, **kwargs: None)
     monkeypatch.chdir(tmp_path)  # examples that save do not litter the repository
+    shutil.copy(ROOT / "docs" / "img" / "knight.jpg", tmp_path)  # the README's picture
     yield
     plt.close("all")
 

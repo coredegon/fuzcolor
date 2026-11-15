@@ -9,24 +9,24 @@ pip install fuzcolor
 ```
 
 ```python
-import numpy as np
+import matplotlib.pyplot as plt
 import fuzcolor as fc
 from fuzcolor.models import COLIBRI
 
-image = np.array(
-    [[[200, 30, 30], [250, 220, 40]], [[30, 60, 200], [60, 60, 60]]], dtype=np.uint8
-)
+image = plt.imread("knight.jpg")  # docs/img/knight.jpg: 605 x 368 pixels, 8-bit RGB
 
 print(COLIBRI)  # Model('COLIBRI', HSI: 81 chromatic, 5 achromatic)
 print(COLIBRI.label([200, 30, 30]))  # red/high/dark
-print(COLIBRI.label(image).tolist())
-# [['red/high/dark', 'yellow/high/light'], ['blue/high/medium', 'dark gray']]
+roof, cloud, grass = image[330, 320], image[150, 110], image[560, 200]
+print(COLIBRI.label(roof))  # orange/medium/medium
+print(COLIBRI.label(cloud))  # light blue/low/light
+print(COLIBRI.label(grass))  # green/high/dark
 
 weights = fc.palette(COLIBRI, image)  # the share of the image in each of 86 colors
 fc.pie(COLIBRI, weights)
 ```
 
-![An image, the color of every pixel and the palette of the image](https://raw.githubusercontent.com/coredegon/fuzcolor/main/docs/img/palette.png)
+![A picture, the color COLIBRI gives every pixel, and the palette of the picture](https://raw.githubusercontent.com/coredegon/fuzcolor/main/docs/img/palette.png)
 
 ## Inside
 
