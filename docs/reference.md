@@ -52,10 +52,12 @@ over `red`, `green` and `blue`.
 | `table.save(path)`, `Table.load(path)` | a NumPy `.npz` archive |
 | `values`, `source` | the 256 × 256 × 256 positions, the name of the model |
 
-**`plot(model)`** draws the terms of every family and **`swatches(model)`** the
-typical color of every color; both return the Figure.
-**`pie(model, weights, ax=None, *, least=0.02)`** draws a palette and returns
-the Axes; colors with a share below `least` join one gray slice.
+**`plot(model)`** draws the terms of every family, each in the color it stands
+for, over a band of the channel; **`swatches(model)`** draws the typical color
+of every color; both return the Figure.
+**`pie(model, weights, ax=None, *, least=0.02)`** draws a palette as a ring with
+a legend of the shares and returns the Axes; colors with a share below `least`
+join one gray slice.
 
 ## Models
 

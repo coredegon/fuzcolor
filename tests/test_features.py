@@ -109,9 +109,13 @@ def test_pie_merges_the_small_shares():
     weights = np.zeros(86)
     weights[[0, 40, 85]] = 0.5, 0.49, 0.01
     ax = fc.pie(COLIBRI, weights)
-    written = sorted(text.get_text() for text in ax.texts)
+    legend = ax.get_legend()
+    assert legend is not None
+    entries = [text.get_text().strip() for text in legend.get_texts()]
     names = ["red/low/dark", COLIBRI.colors[40], "other"]
-    assert written == sorted([*names, "50%", "49%", "1%"])
+    assert entries == [f"50%  {names[0]}", f"49%  {names[1]}", f"1%  {names[2]}"]
+    written = sorted(text.get_text() for text in ax.texts if text.get_text())
+    assert written == ["49%", "50%", "COLIBRI"]  # a slice under 5% is too thin
     assert ax.patches[0].get_facecolor()[:3] == pytest.approx(COLIBRI.prototypes()[0])
     _, given = plt.subplots()
     assert fc.pie(COLIBRI, weights, given, least=0) is given
